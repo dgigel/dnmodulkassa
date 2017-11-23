@@ -12,6 +12,15 @@ if (!defined('_PS_VERSION_'))
 
 class DnModulKassa extends Module
 {
+    private $conf_default = array(
+        'DNMODULKASSA_LOGIN' => '',
+        'DNMODULKASSA_PASSWORD' => '',
+        'DNMODULKASSA_RETAIL_POINT_ID' => '',
+        'DNMODULKASSA_ASSOCIATE_USER' => '',
+        'DNMODULKASSA_ASSOCIATE_PASSWORD' => '',
+        'DNMODULKASSA_TEST_MODE' => '1'
+    );
+
     public function __construct()
     {
         $this->name = 'dnmodulkassa';
@@ -27,5 +36,23 @@ class DnModulKassa extends Module
 
         $this->displayName = 'МодульКасса';
         $this->description = 'PrestaShop <=> МодульКасса';
+
+        $this->conf = Configuration::getMultiple(array_keys($this->conf_default));
+    }
+
+    public function install()
+    {
+        foreach ($this->conf_default as $c => $v)
+            Configuration::updateValue($c, $v);
+
+        return parent::install();
+    }
+
+    public function uninstall()
+    {
+        foreach ($this->conf_default as $c => $v)
+            Configuration::deleteByName($c);
+
+        return parent::uninstall();
     }
 }
