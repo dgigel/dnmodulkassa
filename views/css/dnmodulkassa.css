@@ -1,0 +1,23 @@
+#dnmodulkassaModal {
+    text-align: center;
+    padding: 0!important;
+}
+
+#dnmodulkassaModal:before {
+    content: '';
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+    margin-right: -4px;
+}
+
+#dnmodulkassaModal .modal-dialog {
+    display: inline-block;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.panel.dnmodulkassa-header img.dnmodulkassa-logo {
+    float:left;
+    margin-right: 20px;
+}

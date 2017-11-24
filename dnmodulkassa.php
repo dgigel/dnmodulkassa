@@ -21,7 +21,8 @@ class DnModulKassa extends Module
         'DNMODULKASSA_RETAIL_POINT_INFO' => '',
         'DNMODULKASSA_ASSOCIATE_USER' => '',
         'DNMODULKASSA_ASSOCIATE_PASSWORD' => '',
-        'DNMODULKASSA_TEST_MODE' => '1'
+        'DNMODULKASSA_TEST_MODE' => '1',
+        'DNMODULKASSA_LOGS_MODE' => '0'
     );
 
     public function __construct()
@@ -48,8 +49,16 @@ class DnModulKassa extends Module
         foreach ($this->conf_default as $c => $v)
             Configuration::updateValue($c, $v);
 
+        if (!parent::install())
+            return false;
+
+        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1))
+            return false;
+
         DnModulKassaHandler::log('Установка модуля.');
-        return parent::install();
+
+        return $this->registerHook('displayAdminOrder')
+            && $this->registerHook('BackOfficeHeader');
     }
 
     public function uninstall()
@@ -57,8 +66,31 @@ class DnModulKassa extends Module
         foreach ($this->conf_default as $c => $v)
             Configuration::deleteByName($c);
 
+        if (!$this->uninstallModuleTab('AdminDnModulKassa'))
+            return false;
+
         DnModulKassaHandler::log('Удаление модуля.');
+
         return parent::uninstall();
+    }
+
+    public function hookdisplayAdminOrder($params)
+    {
+        $this->smarty->assign(array(
+            'id_order' => (int)$params['id_order']
+        ));
+        return $this->display(__FILE__, 'displayAdminOrder.tpl');
+    }
+
+    public function hookDisplayBackOfficeHeader($params)
+    {
+        $this->context->controller->addCSS(($this->_path) . 'views/css/dnmodulkassa.css');
+        return '
+			<script type="text/javascript">
+				var urlDnModulKassa = "' . $this->context->link->getAdminLink('AdminDnModulKassa') . '";
+				var tokenDnModulKassa = "' . Tools::getAdminTokenLite('AdminDnModulKassa') . '";
+			</script>
+			<script type="text/javascript" src="' . ($this->_path) . 'views/js/dnmodulkassa.js"></script>';
     }
 
     public function getContent()
@@ -66,21 +98,27 @@ class DnModulKassa extends Module
         $output = '
             <div class="row">
                 <div class="col-md-12">
-                    <div class="panel">
-                        <img src="../modules/dnmodulkassa/logo.png" style="float:left;margin-right: 20px;">
+                    <div class="panel dnmodulkassa-header">
+                        <img class="dnmodulkassa-logo" src="'.$this->_path.'logo.png">
                         <h1>' . $this->displayName . ' <sup>v' . $this->version . '</sup></h1>
                     </div>
                 </div>
             </div>
         ';
 
-        if (Tools::isSubmit('testmode_submit_save')) {
+        if (Tools::isSubmit('settings_submit_save')) {
             $test_mode = (int)Tools::getValue('DNMODULKASSA_TEST_MODE');
-            if (Configuration::updateValue('DNMODULKASSA_TEST_MODE', $test_mode))
-                DnModulKassaHandler::log(($test_mode ? 'Включение' : 'Выключение') . ' тестового режима.');
-            $output .= '
-                <div class="alert alert-success">Тестовый режим ' . ($test_mode ? 'включен' : 'выключен') . '</div>
-            ';
+            $logs_mode = (int)Tools::getValue('DNMODULKASSA_LOGS_MODE');
+            if (Configuration::updateValue('DNMODULKASSA_TEST_MODE', $test_mode) &&
+                Configuration::updateValue('DNMODULKASSA_LOGS_MODE', $logs_mode)){
+                $output .= '
+                    <div class="alert alert-success">Настройки модуля сохранены.</div>
+                ';
+            } else {
+                $output .= '
+                    <div class="alert alert-danger">Ошибка сохранения настроек модуля.</div>
+                ';
+            }
         }
         if (Tools::isSubmit('auth_submit_save')) {
             if (Configuration::updateValue('DNMODULKASSA_LOGIN', Tools::getValue('DNMODULKASSA_LOGIN')) &&
@@ -89,6 +127,10 @@ class DnModulKassa extends Module
             ) {
                 $output .= '
                     <div class="alert alert-success">Данные для авторизации сохранены.</div>
+                ';
+            } else {
+                $output .= '
+                    <div class="alert alert-danger">Ошибка сохранения данных авторизации.</div>
                 ';
             }
         }
@@ -108,7 +150,7 @@ class DnModulKassa extends Module
                     $output .= '<div class="alert alert-danger">Ошибка создания связи.</div>';
                 }
             } else {
-                $output .= '<div class="alert alert-danger">Не заполнены авторизационные данные.</div>';
+                $output .= '<div class="alert alert-danger">Не заполнены данные для авторизации.</div>';
             }
         }
 
@@ -120,7 +162,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="../img/admin/employee.gif" /> Настройки авторизации:</div>
+                        <div class="panel-heading"><img src="'.$this->_path.'views/img/profile.png" /> Настройки авторизации:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Учетные данные <a target="_blank" href="https://service.modulpos.ru/">МодульКассы</a></p>
                             <div class="form-group">
@@ -160,12 +202,11 @@ class DnModulKassa extends Module
             $output .= '
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="../img/admin/cog.gif" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
+                        <div class="panel-heading"><img src="'.$this->_path.'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
-                            <p>user: <b>' . $auser . '</b></p>
-                            <p>password: <b>' . $apassword . '</b></p>
+                            <p>Логин & пароль: ' . (($auser != '' && $apassword != '') ? '<b class="text-success">получены</b>' : '<b class="text-danger">не получены</b>') . '</p>
                             <p><b>' . $apoint_info . '</b></p>
-                            '.((isset($astatus)&&$astatus['success']) ? ('<p>Статус: <b>'.$astatus['data']['status'].'</b> '.$astatus['data']['dateTime'].'</p>') : '').'
+                            ' . ((isset($astatus) && $astatus['success']) ? ('<p>Статус: <b>' . $astatus['data']['status'] . '</b> ' . $astatus['data']['dateTime'] . '</p>') : '') . '
                             <div class="form-group">
                             ' . (
                 ($auser != '' && $apassword != '') ?
@@ -187,10 +228,10 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="../img/admin/cog.gif" /> Тестовый режим:</div>
+                        <div class="panel-heading"><img src="'.$this->_path.'views/img/settings.png" /> Настройки модуля:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <div class="form-group">
-                                <label class="control-label col-lg-3">Включен: </label>
+                                <label class="control-label col-lg-3">Тестовый режим: </label>
                                 <div class="col-lg-9">
                                     <span class="switch prestashop-switch fixed-width-lg">
                                         <input type="radio" name="DNMODULKASSA_TEST_MODE" id="DNMODULKASSA_TEST_MODE_on" value="1" ' . ((int)Configuration::get('DNMODULKASSA_TEST_MODE') == 1 ? 'checked="checked"' : '') . '>
@@ -201,7 +242,19 @@ class DnModulKassa extends Module
                                     </span>
                                 </div>
                             </div>
-                            <div class="form-group"><input type="submit" name="testmode_submit_save" value="Сохранить" class="button btn btn-primary pull-right" /></div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3">Вести логи: </label>
+                                <div class="col-lg-9">
+                                    <span class="switch prestashop-switch fixed-width-lg">
+                                        <input type="radio" name="DNMODULKASSA_LOGS_MODE" id="DNMODULKASSA_LOGS_MODE_on" value="1" ' . ((int)Configuration::get('DNMODULKASSA_LOGS_MODE') == 1 ? 'checked="checked"' : '') . '>
+                                        <label for="DNMODULKASSA_LOGS_MODE_on" class="radioCheck">Вкл</label>
+                                        <input type="radio" name="DNMODULKASSA_LOGS_MODE" id="DNMODULKASSA_LOGS_MODE_off" value="0" ' . ((int)Configuration::get('DNMODULKASSA_LOGS_MODE') == 0 ? 'checked="checked"' : '') . '>
+                                        <label for="DNMODULKASSA_LOGS_MODE_off" class="radioCheck">Выкл</label>
+                                        <a class="slide-button btn"></a>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="form-group"><input type="submit" name="settings_submit_save" value="Сохранить" class="button btn btn-primary pull-right" /></div>
                         </form>
                     </div>
                 </div>
@@ -209,6 +262,31 @@ class DnModulKassa extends Module
 		';
 
         return $output;
+    }
+
+    private function installModuleTab($tab_class, $tab_name, $id_tab_parent)
+    {
+        $tab = new Tab();
+        $tab->class_name = $tab_class;
+        $tab->module = $this->name;
+        $tab->id_parent = $id_tab_parent;
+
+        $languages = Language::getLanguages();
+        foreach ($languages as $lang)
+            $tab->name[$lang['id_lang']] = $this->l($tab_name);
+
+        return $tab->save();
+    }
+
+    private function uninstallModuleTab($tab_class)
+    {
+        $idTab = Tab::getIdFromClassName($tab_class);
+        if ($idTab != 0) {
+            $tab = new Tab($idTab);
+            $tab->delete();
+            return true;
+        }
+        return false;
     }
 
 }

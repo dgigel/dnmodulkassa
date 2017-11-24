@@ -11,14 +11,16 @@ class DnModulKassaHandler
 {
     public static function log($log_entry, $log_file = null)
     {
-        if ($log_file == null) {
-            $log_file = _PS_MODULE_DIR_ . 'dnmodulkassa/logs/dnmodulkassa.log';
+        if ((int)ConfigurationCore::get('DNMODULKASSA_LOGS_MODE') == 1){
+            if ($log_file == null) {
+                $log_file = _PS_MODULE_DIR_ . 'dnmodulkassa/logs/dnmodulkassa.log';
 
-            if (!is_dir(_PS_MODULE_DIR_ . 'dnmodulkassa/logs/')) {
-                mkdir(_PS_MODULE_DIR_ . 'dnmodulkassa/logs/', 0775, true);
+                if (!is_dir(_PS_MODULE_DIR_ . 'dnmodulkassa/logs/')) {
+                    mkdir(_PS_MODULE_DIR_ . 'dnmodulkassa/logs/', 0775, true);
+                }
             }
+            file_put_contents($log_file, "\n" . date('Y-m-d H:i:sP') . ' : ' . $log_entry, FILE_APPEND);
         }
-        file_put_contents($log_file, "\n" . date('Y-m-d H:i:sP') . ' : ' . $log_entry, FILE_APPEND);
     }
 
     public static function isAssociated()
@@ -107,6 +109,28 @@ class DnModulKassaHandler
                 'password' => $associated_password
             );
         }
+    }
+
+    public static function createDoc(){}
+
+    private static function createInventPosition(){}
+
+    private static function createMoneyPosition(){}
+
+    public static function sendCheck(){}
+
+    private static function createToken($document_number)
+    {
+        $associationData = static::getAssociationData();
+        return md5($associationData['username'] . '$' . $associationData['password'] . '$' . $document_number);
+    }
+
+    public static function validateToken($token, $document_number)
+    {
+        if (!$token) {
+            return FALSE;
+        }
+        return trim($token) == static::createToken($document_number);
     }
 
     private static function sendHttpRequest($url, $method, $auth_data, $fn_base_url, $data = '')
