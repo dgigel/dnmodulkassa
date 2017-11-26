@@ -11,6 +11,7 @@ if (!defined('_PS_VERSION_'))
     exit;
 
 @require_once _PS_MODULE_DIR_ . 'dnmodulkassa/dnmodulkassa_handler.php';
+include_once _PS_MODULE_DIR_ . 'dnmodulkassa/classes/DnModulKassaEntry.php';
 
 class DnModulKassa extends Module
 {
@@ -22,7 +23,8 @@ class DnModulKassa extends Module
         'DNMODULKASSA_ASSOCIATE_USER' => '',
         'DNMODULKASSA_ASSOCIATE_PASSWORD' => '',
         'DNMODULKASSA_TEST_MODE' => '1',
-        'DNMODULKASSA_LOGS_MODE' => '0'
+        'DNMODULKASSA_LOGS_MODE' => '0',
+        'DNMODULKASSA_SECRET' => ''
     );
 
     public function __construct()
@@ -46,16 +48,34 @@ class DnModulKassa extends Module
 
     public function install()
     {
-        foreach ($this->conf_default as $c => $v)
+        foreach ($this->conf_default as $c => $v) {
+            if ($c == 'DNMODULKASSA_SECRET')
+                $v = Tools::passwdGen(32, 'RANDOM');
             Configuration::updateValue($c, $v);
+        }
+
+        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry` (
+			`id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			`id_order` INT UNSIGNED NOT NULL,
+			`doc_id` VARCHAR(250) NOT NULL,
+            `doc_type` ENUM("SALE", "RETURN") NOT NULL,
+			`payment_type` ENUM("CARD", "CASH") NOT NULL,
+			`print_receipt` TINYINT(1) UNSIGNED NOT NULL,
+			`contact` VARCHAR(250) NOT NULL,
+			`checkout_datetime` VARCHAR(100) NOT NULL,
+			`status` VARCHAR(100) NOT NULL,
+			`date_add` DATETIME NOT NULL,
+	        `date_upd` DATETIME NOT NULL
+			) ENGINE=' . _MYSQL_ENGINE_;
+
+        if (!Db::getInstance()->execute($sql))
+            return false;
 
         if (!parent::install())
             return false;
 
         if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1))
             return false;
-
-        DnModulKassaHandler::log('Установка модуля.');
 
         return $this->registerHook('displayAdminOrder')
             && $this->registerHook('BackOfficeHeader');
@@ -66,18 +86,28 @@ class DnModulKassa extends Module
         foreach ($this->conf_default as $c => $v)
             Configuration::deleteByName($c);
 
-        if (!$this->uninstallModuleTab('AdminDnModulKassa'))
+        $sql = 'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry`';
+        if (!Db::getInstance()->execute($sql))
             return false;
 
-        DnModulKassaHandler::log('Удаление модуля.');
+        if (!$this->uninstallModuleTab('AdminDnModulKassa'))
+            return false;
 
         return parent::uninstall();
     }
 
     public function hookdisplayAdminOrder($params)
     {
+        $configured = (Configuration::get('DNMODULKASSA_SECRET') &&
+            Configuration::get('DNMODULKASSA_ASSOCIATE_USER') &&
+            Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD')) ? true : false;
+
+        $entries = DnModulKassaEntry::getEntriesByOrderId($params['id_order']);
+
         $this->smarty->assign(array(
-            'id_order' => (int)$params['id_order']
+            'module_settings_link' => $this->context->link->getAdminLink('AdminModules').'&configure='.$this->name.'&module_name='.$this->name.'&tab_module='.$this->tab,
+            'configured' => $configured,
+            'entries' => $entries
         ));
         return $this->display(__FILE__, 'displayAdminOrder.tpl');
     }
@@ -87,7 +117,6 @@ class DnModulKassa extends Module
         $this->context->controller->addCSS(($this->_path) . 'views/css/dnmodulkassa.css');
         return '
 			<script type="text/javascript">
-				var urlDnModulKassa = "' . $this->context->link->getAdminLink('AdminDnModulKassa') . '";
 				var tokenDnModulKassa = "' . Tools::getAdminTokenLite('AdminDnModulKassa') . '";
 			</script>
 			<script type="text/javascript" src="' . ($this->_path) . 'views/js/dnmodulkassa.js"></script>';
@@ -99,7 +128,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel dnmodulkassa-header">
-                        <img class="dnmodulkassa-logo" src="'.$this->_path.'logo.png">
+                        <img class="dnmodulkassa-logo" src="' . $this->_path . 'logo.png">
                         <h1>' . $this->displayName . ' <sup>v' . $this->version . '</sup></h1>
                     </div>
                 </div>
@@ -109,8 +138,11 @@ class DnModulKassa extends Module
         if (Tools::isSubmit('settings_submit_save')) {
             $test_mode = (int)Tools::getValue('DNMODULKASSA_TEST_MODE');
             $logs_mode = (int)Tools::getValue('DNMODULKASSA_LOGS_MODE');
+            $secret = Tools::getValue('DNMODULKASSA_SECRET');
             if (Configuration::updateValue('DNMODULKASSA_TEST_MODE', $test_mode) &&
-                Configuration::updateValue('DNMODULKASSA_LOGS_MODE', $logs_mode)){
+                Configuration::updateValue('DNMODULKASSA_LOGS_MODE', $logs_mode) &&
+                Configuration::updateValue('DNMODULKASSA_SECRET', $secret)
+            ) {
                 $output .= '
                     <div class="alert alert-success">Настройки модуля сохранены.</div>
                 ';
@@ -162,7 +194,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="'.$this->_path.'views/img/profile.png" /> Настройки авторизации:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" /> Настройки авторизации:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Учетные данные <a target="_blank" href="https://service.modulpos.ru/">МодульКассы</a></p>
                             <div class="form-group">
@@ -202,7 +234,7 @@ class DnModulKassa extends Module
             $output .= '
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="'.$this->_path.'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Логин & пароль: ' . (($auser != '' && $apassword != '') ? '<b class="text-success">получены</b>' : '<b class="text-danger">не получены</b>') . '</p>
                             <p><b>' . $apoint_info . '</b></p>
@@ -228,7 +260,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-6">
                     <div class="panel">
-                        <div class="panel-heading"><img src="'.$this->_path.'views/img/settings.png" /> Настройки модуля:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" /> Настройки модуля:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Тестовый режим: </label>
@@ -252,6 +284,12 @@ class DnModulKassa extends Module
                                         <label for="DNMODULKASSA_LOGS_MODE_off" class="radioCheck">Выкл</label>
                                         <a class="slide-button btn"></a>
                                     </span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3">Токен: </label>
+                                <div class="col-lg-9">
+                                    <input type="text" class="text form-control" value="' . Configuration::get('DNMODULKASSA_SECRET') . '" name="DNMODULKASSA_SECRET">
                                 </div>
                             </div>
                             <div class="form-group"><input type="submit" name="settings_submit_save" value="Сохранить" class="button btn btn-primary pull-right" /></div>

@@ -17,6 +17,15 @@
     vertical-align: middle;
 }
 
+#dnmodulkassaModal .btn-docsend {
+    transition: 0.3s;
+    text-transform: uppercase;
+}
+
+.hidden {
+    display: none;
+}
+
 .panel.dnmodulkassa-header img.dnmodulkassa-logo {
     float:left;
     margin-right: 20px;

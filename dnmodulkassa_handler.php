@@ -11,7 +11,7 @@ class DnModulKassaHandler
 {
     public static function log($log_entry, $log_file = null)
     {
-        if ((int)ConfigurationCore::get('DNMODULKASSA_LOGS_MODE') == 1){
+        if ((int)ConfigurationCore::get('DNMODULKASSA_LOGS_MODE') == 1) {
             if ($log_file == null) {
                 $log_file = _PS_MODULE_DIR_ . 'dnmodulkassa/logs/dnmodulkassa.log';
 
@@ -111,25 +111,44 @@ class DnModulKassaHandler
         }
     }
 
-    public static function createDoc(){}
-
-    private static function createInventPosition(){}
-
-    private static function createMoneyPosition(){}
-
-    public static function sendCheck(){}
-
-    private static function createToken($document_number)
+    public static function createDoc($order, $doc_type, $payment_type, $print_receipt, $contact)
     {
-        $associationData = static::getAssociationData();
-        return md5($associationData['username'] . '$' . $associationData['password'] . '$' . $document_number);
+        if (!is_object($order))
+            $order = new Order((int)$order);
+
+        $dateTime = new DateTime('NOW');
+        $doc = array(
+            'id' => $order->id . '-' . uniqid(),
+            'checkoutDateTime' => $dateTime->format(DATE_RFC3339),
+            'docNum' => $order->id,
+            'docType' => $doc_type,
+            'printReceipt' => (bool)$print_receipt,
+            'email' => $contact,
+            'moneyPositions' => array(
+                'paymentType' => $payment_type,
+                'sum' => number_format($order->total_paid, 2, '.', '')
+            )
+        );
+
+        $doc['responseURL'] = static::getResponseUrl(array('doc_id' => $doc['id'], 'token' => static::createToken($doc['id'])));
+
+        $inventPositions = array();
+        $doc['inventPositions'] = $inventPositions;
+
+        return $doc;
+    }
+
+    public static function sendCheck()
+    {
+    }
+
+    public static function createToken($document_number)
+    {
+        return md5(Configuration::get('DNMODULKASSA_SECRET') . '$' . $document_number);
     }
 
     public static function validateToken($token, $document_number)
     {
-        if (!$token) {
-            return FALSE;
-        }
         return trim($token) == static::createToken($document_number);
     }
 
@@ -185,5 +204,14 @@ class DnModulKassaHandler
         } else {
             return 'https://service.modulpos.ru/api/fn';
         }
+    }
+
+    public static function getResponseUrl($params = false)
+    {
+        if (!is_array($params))
+            $params = array();
+
+        $link = new Link();
+        return $link->getModuleLink('dnmodulkassa', 'response', $params, (int)Configuration::get('PS_SSL_ENABLED'));
     }
 }
