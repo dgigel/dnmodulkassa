@@ -39,7 +39,7 @@ class DnModulKassaEntry extends ObjectModel
 
     public static function getEntriesByOrderId($order_id)
     {
-        return Db::getInstance()->executeS('SELECT * FROM ' . _DB_PREFIX_ . 'dnmodulkassa_entry WHERE id_order=' . (int)$order_id);
+        return Db::getInstance()->executeS('SELECT * FROM ' . _DB_PREFIX_ . 'dnmodulkassa_entry WHERE id_order=' . (int)$order_id . ' ORDER BY `id_entry` ASC');
     }
 
 }

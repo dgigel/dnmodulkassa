@@ -1,4 +1,4 @@
-<div class="col-md-6">
+<div class="col-md-6" id="dnmodulkassa_col">
     <div class="panel">
         <div class="panel-heading">
             <img src="../modules/dnmodulkassa/logo.gif"> <b>Модуль</b>Касса
@@ -18,6 +18,7 @@
                 <div class="col-md-12">
                     <hr>
                     <h4>Документы:</h4>
+                    <button type="button" class="btn btn-default pull-right" id="dnmodulkassa_refresh" data-loading-text="<i class='icon-refresh icon-spin icon-fw'></i>"><i class='icon-refresh icon-fw'></i></button>
                     <table class="table" id="dnmodulkassa_docs_table">
                         <thead>
                             <tr>
@@ -42,6 +43,7 @@
                                 </tr>
                             {/foreach}
                         {/if}
+
                         </tbody>
                     </table>
                 </div>

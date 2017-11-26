@@ -24,7 +24,8 @@ class DnModulKassa extends Module
         'DNMODULKASSA_ASSOCIATE_PASSWORD' => '',
         'DNMODULKASSA_TEST_MODE' => '1',
         'DNMODULKASSA_LOGS_MODE' => '0',
-        'DNMODULKASSA_SECRET' => ''
+        'DNMODULKASSA_SECRET' => '',
+        'DNMODULKASSA_VAT_TAG' => '1105'
     );
 
     public function __construct()
@@ -105,7 +106,7 @@ class DnModulKassa extends Module
         $entries = DnModulKassaEntry::getEntriesByOrderId($params['id_order']);
 
         $this->smarty->assign(array(
-            'module_settings_link' => $this->context->link->getAdminLink('AdminModules').'&configure='.$this->name.'&module_name='.$this->name.'&tab_module='.$this->tab,
+            'module_settings_link' => $this->context->link->getAdminLink('AdminModules') . '&configure=' . $this->name . '&module_name=' . $this->name . '&tab_module=' . $this->tab,
             'configured' => $configured,
             'entries' => $entries
         ));
@@ -139,9 +140,11 @@ class DnModulKassa extends Module
             $test_mode = (int)Tools::getValue('DNMODULKASSA_TEST_MODE');
             $logs_mode = (int)Tools::getValue('DNMODULKASSA_LOGS_MODE');
             $secret = Tools::getValue('DNMODULKASSA_SECRET');
+            $vat_tag = Tools::getValue('DNMODULKASSA_VAT_TAG');
             if (Configuration::updateValue('DNMODULKASSA_TEST_MODE', $test_mode) &&
                 Configuration::updateValue('DNMODULKASSA_LOGS_MODE', $logs_mode) &&
-                Configuration::updateValue('DNMODULKASSA_SECRET', $secret)
+                Configuration::updateValue('DNMODULKASSA_SECRET', $secret) &&
+                Configuration::updateValue('DNMODULKASSA_VAT_TAG', $vat_tag)
             ) {
                 $output .= '
                     <div class="alert alert-success">Настройки модуля сохранены.</div>
@@ -177,7 +180,7 @@ class DnModulKassa extends Module
             if ($retailpoint_id != '' && $login != '' && $password != '') {
                 $association_responce = DnModulKassaHandler::createAssociation($retailpoint_id, $login, $password, $test_mode);
                 if ($association_responce['success']) {
-                    $output .= '<div class="alert alert-success">Связь магазин-касса настроена.</div>';
+                    $output .= '<div class="alert alert-success">Успешная инициализация интернет-магазина с розничной точкой.</div>';
                 } else {
                     $output .= '<div class="alert alert-danger">Ошибка создания связи.</div>';
                 }
@@ -290,6 +293,19 @@ class DnModulKassa extends Module
                                 <label class="control-label col-lg-3">Токен: </label>
                                 <div class="col-lg-9">
                                     <input type="text" class="text form-control" value="' . Configuration::get('DNMODULKASSA_SECRET') . '" name="DNMODULKASSA_SECRET">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label col-lg-3">Тег НДС, согласно ФЗ-54: </label>
+                                <div class="col-lg-9">
+                                    <select class="form-control" name="DNMODULKASSA_VAT_TAG" id="DNMODULKASSA_VAT_TAG">
+                                        <option value="1104" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1104' ? 'selected="selected"' : '') . '>НДС 0%</option>
+                                        <option value="1103" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1103' ? 'selected="selected"' : '') . '>НДС 10%</option>
+                                        <option value="1102" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1102' ? 'selected="selected"' : '') . '>НДС 18%</option>
+                                        <option value="1105" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1105' ? 'selected="selected"' : '') . '>НДС не облагается</option>
+                                        <option value="1107" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1107' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 10/110</option>
+                                        <option value="1106" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1106' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 18/118</option>
+                                    </select>
                                 </div>
                             </div>
                             <div class="form-group"><input type="submit" name="settings_submit_save" value="Сохранить" class="button btn btn-primary pull-right" /></div>

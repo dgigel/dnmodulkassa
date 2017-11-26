@@ -54,6 +54,7 @@ $(document).ready(function () {
                             '<td>' + response.entry.date_upd + '</td>' +
                             '</tr>');
                     } else {
+                        jAlert(response.message);
                         $this_button.button('reset');
                     }
                 })
@@ -63,4 +64,53 @@ $(document).ready(function () {
                 });
         }
     });
+
+    $('#dnmodulkassa_refresh').on('click', function (e) {
+        e.preventDefault();
+        stopAjaxQuery();
+
+        var $this_button = $(this).button('loading');
+        $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: 'ajax-tab.php',
+            cache: false,
+            data: {
+                ajax: true,
+                controller: 'AdminDnModulKassa',
+                action: 'getEntries',
+                token: tokenDnModulKassa,
+                id_order: id_order
+            },
+        })
+            .done(function (response) {
+                if (response.success === true) {
+                    console.log(response);
+                    creacteDocTable(response.entries);
+                    $this_button.button('reset');
+                } else {
+                    $this_button.button('reset');
+                    jAlert('не ок.');
+                }
+            })
+            .fail(function (XMLHttpRequest, textStatus, errorThrown) {
+                jAlert("Error.\n\ntextStatus: '" + textStatus + "'\nerrorThrown: '" + errorThrown + "'\nresponseText:\n" + XMLHttpRequest.responseText);
+                $this_button.button('reset');
+            });
+    });
+
+    function creacteDocTable(data, clear) {
+        $('#dnmodulkassa_docs_table > tbody').html('');
+        for (var entry in data) {
+            $('#dnmodulkassa_docs_table > tbody:last').append(
+                '<tr>' +
+                '<td>' + data[entry].doc_id + '</td>' +
+                '<td>' + (data[entry].doc_type == 'SALE' ? 'Продажа' : 'Возврат') + '</td>' +
+                '<td>' + (data[entry].payment_type == 'CASH' ? 'Наличными' : 'Картой') + '</td>' +
+                '<td>' + data[entry].checkout_datetime + '</td>' +
+                '<td>' + data[entry].status + '</td>' +
+                '<td>' + data[entry].date_upd + '</td>' +
+                '</tr>');
+        }
+    }
 });

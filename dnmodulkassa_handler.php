@@ -126,23 +126,79 @@ class DnModulKassaHandler
             'email' => $contact,
             'moneyPositions' => array(
                 'paymentType' => $payment_type,
-                'sum' => number_format($order->total_paid, 2, '.', '')
+                'sum' => floatval(number_format($order->total_paid, 2, '.', ''))
             )
         );
 
         $doc['responseURL'] = static::getResponseUrl(array('doc_id' => $doc['id'], 'token' => static::createToken($doc['id'])));
 
+        $products = $order->getProductsDetail();
+
+        if (count($products) == 0)
+            return false;
+
+        $vatTag = Configuration::get('DNMODULKASSA_VAT_TAG');
         $inventPositions = array();
+        foreach ($products as $product) {
+            $inventPositions[] = static::createInventPosition(
+                (strlen(trim($product['product_reference'])) > 0 ? $product['product_reference'] : $product['product_name']),
+                $product['unit_price_tax_incl'],
+                $product['product_quantity'],
+                $vatTag);
+        }
+
+        if ($order->total_discounts > 0) {
+            if ($inventPositions[0]['quantity'] > 1) {
+                $inventPositions[0]['quantity'] -= 1;
+                array_unshift($inventPositions, static::createInventPosition(
+                    $inventPositions[0]['name'],
+                    $inventPositions[0]['price'],
+                    1,
+                    $vatTag
+                ));
+            }
+
+            $discount_percent = $order->total_discounts / $order->total_products;
+            $total_discounts = 0;
+            foreach ($inventPositions as &$position) {
+                $position['discSum'] = floatval(number_format($position['price'] * $discount_percent, 2, '.', ''));
+                $total_discounts += $position['discSum'] * $position['quantity'];
+            }
+
+            if ($order->total_discounts != $total_discounts) {
+                $diff = floatval(number_format($order->total_discounts - $total_discounts, 2, '.', ''));
+                $inventPositions[0]['discSum'] = floatval(bcadd($inventPositions[0]['discSum'], $diff, 2));
+            }
+        }
+
+        if ($order->total_shipping > 0)
+            $inventPositions[] = static::createInventPosition('ДОСТАВКА', $order->total_shipping, 1, $vatTag);
+
         $doc['inventPositions'] = $inventPositions;
 
         return $doc;
     }
 
-    public static function sendCheck()
+    private static function createInventPosition($name, $price, $quantity, $vatTag, $discSum = 0)
     {
+        return array(
+            'name' => trim($name),
+            'price' => floatval(number_format($price, 2, '.', '')),
+            'quantity' => (int)$quantity,
+            'vatTag' => (int)$vatTag,
+            'discSum' => floatval($discSum)
+        );
     }
 
-    public static function createToken($document_number)
+    public static function sendDoc($doc)
+    {
+        if (!is_array($doc))
+            return false;
+
+        return true;
+    }
+
+    private static function createToken($document_number)
     {
         return md5(Configuration::get('DNMODULKASSA_SECRET') . '$' . $document_number);
     }
