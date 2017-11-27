@@ -277,7 +277,7 @@ class DnModulKassaHandler
         }
 
         if ($code >= 400) {
-            static::log("\nResponse: " . var_export($response, true));
+            static::log("\nError. Response: " . var_export($response, true));
             return false;
         }
 

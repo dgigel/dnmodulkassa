@@ -90,7 +90,7 @@ $(document).ready(function () {
                     $this_button.button('reset');
                 } else {
                     $this_button.button('reset');
-                    jAlert('не ок.');
+                    jAlert('Ошибка');
                 }
             })
             .fail(function (XMLHttpRequest, textStatus, errorThrown) {
