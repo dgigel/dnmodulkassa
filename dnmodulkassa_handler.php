@@ -28,9 +28,9 @@ class DnModulKassaHandler
         return Configuration::get('DNMODULKASSA_ASSOCIATE_USER') !== '';
     }
 
-    public static function createAssociation($retailpoint_id, $login, $password, $test_mode)
+    public static function createAssociation($retailpoint_id, $login, $password)
     {
-        $fn_base_url = static::getFnBaseUrlByMode($test_mode);
+        $fn_base_url = static::getFnBaseUrl();
         $response = static::sendHttpRequest('/v1/associate/' . $retailpoint_id, 'POST', array('username' => $login, 'password' => $password), $fn_base_url);
         if ($response !== false) {
             $associated_login = $response['userName'];
@@ -76,9 +76,9 @@ class DnModulKassaHandler
 
     }
 
-    public static function getFnStatus($login, $password, $test_mode)
+    public static function getStatus($login, $password)
     {
-        $fn_base_url = static::getFnBaseUrlByMode($test_mode);
+        $fn_base_url = static::getFnBaseUrl();
         $response = static::sendHttpRequest('/v1/status', 'GET', array('username' => $login, 'password' => $password), $fn_base_url);
 
         if ($response !== false) {
@@ -101,7 +101,7 @@ class DnModulKassaHandler
     {
         $associated_login = Configuration::get('DNMODULKASSA_ASSOCIATE_USER');
         $associated_password = Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD');
-        if ($associated_login == '') {
+        if (!$associated_login OR !$associated_password) {
             return false;
         } else {
             return array(
@@ -120,14 +120,14 @@ class DnModulKassaHandler
         $doc = array(
             'id' => $order->id . '-' . uniqid(),
             'checkoutDateTime' => $dateTime->format(DATE_RFC3339),
-            'docNum' => $order->id,
+            'docNum' => (string)$order->id,
             'docType' => $doc_type,
             'printReceipt' => (bool)$print_receipt,
             'email' => $contact,
-            'moneyPositions' => array(
+            'moneyPositions' => array(array(
                 'paymentType' => $payment_type,
                 'sum' => floatval(number_format($order->total_paid, 2, '.', ''))
-            )
+            ))
         );
 
         $doc['responseURL'] = static::getResponseUrl(array('doc_id' => $doc['id'], 'token' => static::createToken($doc['id'])));
@@ -195,7 +195,46 @@ class DnModulKassaHandler
         if (!is_array($doc))
             return false;
 
-        return true;
+        $doc_json = json_encode($doc, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $association_data = static::getAssociationData();
+        if (!$association_data)
+            return false;
+
+        $response = static::sendHttpRequest('/v1/doc', 'POST', $association_data, static::getFnBaseUrl(), $doc_json);
+
+        if ($response === FALSE)
+            static::log('sendDoc error:' . var_export(error_get_last(), TRUE));
+
+        return $response;
+    }
+
+    public static function getDocStatus($doc_id)
+    {
+        $fn_base_url = static::getFnBaseUrl();
+        $association_data = static::getAssociationData();
+        if (trim($association_data['username']) == '' OR trim($association_data['password']) == '')
+            return false;
+
+        $doc_id = trim($doc_id);
+
+        $response = static::sendHttpRequest('/v1/doc/' . $doc_id . '/status', 'GET', $association_data, $fn_base_url);
+
+        if ($response !== false) {
+            return array(
+                'success' => TRUE,
+                'data' => array(
+                    'status' => $response['status'],
+                    'fnState' => $response['fnState'],
+                    'fiscalInfo' => $response['fiscalInfo']
+                )
+            );
+        } else {
+            return array(
+                'success' => FALSE,
+                'error' => error_get_last()['message']
+            );
+        }
     }
 
     private static function createToken($document_number)
@@ -213,37 +252,36 @@ class DnModulKassaHandler
         $encoded_auth = base64_encode($auth_data['username'] . ':' . $auth_data['password']);
         static::log('sendHttpRequest(' . $url . ', ' . $method . ', ' . $encoded_auth);
         $headers = array(
-            'Content-Type' => 'application/json',
-            'Authorization' => 'Basic ' . $encoded_auth
+            'Content-Type: application/json; charset=utf-8',
+            'Authorization: Basic ' . $encoded_auth
         );
         if ($method == 'POST' && $data != '') {
             $headers['Content-Length'] = mb_strlen($data, '8bit');
         }
-        $headers_string = '';
-        foreach ($headers as $key => $value) {
-            $headers_string .= $key . ': ' . $value . "\r\n";
-        }
-        $options = array(
-            'http' => array(
-                'header' => $headers_string,
-                'method' => $method
-            ),
-            'https' => array(
-                'header' => $headers_string,
-                'method' => $method
-            )
-        );
-        if ($method == 'POST' && $data != '') {
-            $options['http']['content'] = $data;
-        }
-        $context = stream_context_create($options);
-        static::log("Request: " . $method . ' ' . $fn_base_url . $url . "\n$headers_string\n" . $data);
-        $response = file_get_contents($fn_base_url . $url, false, $context);
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $fn_base_url . $url);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+        if ($method == 'POST')
+            curl_setopt($curl, CURLOPT_POST, 1);
+        if ($method == 'POST' && $data != '')
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
+        static::log("Request: " . $method . ' ' . $fn_base_url . $url . "\nHeaders: " . var_export($headers, true) . "\n" . $data);
+        $response = curl_exec($curl);
+        $code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
         if ($response === false) {
             static::log("Error:" . var_export(error_get_last(), true));
             return false;
         }
-        static::log("\nResponse:\n" . var_export($response, true));
+
+        if ($code >= 400) {
+            static::log("\nResponse: " . var_export($response, true));
+            return false;
+        }
+
+        static::log("\nResponse: " . var_export($response, true));
         return json_decode($response, true);
     }
 

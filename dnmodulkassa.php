@@ -103,11 +103,14 @@ class DnModulKassa extends Module
             Configuration::get('DNMODULKASSA_ASSOCIATE_USER') &&
             Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD')) ? true : false;
 
+        $order = new Order((int)$params['id_order']);
+        $customer = new Customer($order->id_customer);
         $entries = DnModulKassaEntry::getEntriesByOrderId($params['id_order']);
 
         $this->smarty->assign(array(
             'module_settings_link' => $this->context->link->getAdminLink('AdminModules') . '&configure=' . $this->name . '&module_name=' . $this->name . '&tab_module=' . $this->tab,
             'configured' => $configured,
+            'customer' => $customer,
             'entries' => $entries
         ));
         return $this->display(__FILE__, 'displayAdminOrder.tpl');
@@ -178,7 +181,7 @@ class DnModulKassa extends Module
             $test_mode = Configuration::get('DNMODULKASSA_TEST_MODE');
 
             if ($retailpoint_id != '' && $login != '' && $password != '') {
-                $association_responce = DnModulKassaHandler::createAssociation($retailpoint_id, $login, $password, $test_mode);
+                $association_responce = DnModulKassaHandler::createAssociation($retailpoint_id, $login, $password);
                 if ($association_responce['success']) {
                     $output .= '<div class="alert alert-success">Успешная инициализация интернет-магазина с розничной точкой.</div>';
                 } else {
@@ -232,7 +235,7 @@ class DnModulKassa extends Module
             $apassword = Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD');
             $apoint_info = Configuration::get('DNMODULKASSA_RETAIL_POINT_INFO');
             if ($apassword != '' && $auser != '' && $apoint_info != '') {
-                $astatus = DnModulKassaHandler::getFnStatus($auser, $apassword, Configuration::get('DNMODULKASSA_TEST_MODE'));
+                $astatus = DnModulKassaHandler::getStatus($auser, $apassword);
             }
             $output .= '
                 <div class="col-md-6">

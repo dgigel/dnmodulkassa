@@ -38,7 +38,7 @@ $(document).ready(function () {
             })
                 .done(function (response) {
                     if (response.success === true) {
-                        console.log(response);
+                        //console.log(response);
                         $this_button.button('reset');
                         $this_button.removeClass('btn-primary').addClass('btn-success');
                         $this_button.text('Отправить повторно');
@@ -85,7 +85,7 @@ $(document).ready(function () {
         })
             .done(function (response) {
                 if (response.success === true) {
-                    console.log(response);
+                    //console.log(response);
                     creacteDocTable(response.entries);
                     $this_button.button('reset');
                 } else {

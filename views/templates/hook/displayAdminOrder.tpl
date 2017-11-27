@@ -99,7 +99,7 @@
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Почта/Телефон: </label>
                                 <div class="col-lg-9">
-                                    <input type="text" class="text form-control" value="{$contact}" name="DNMODULKASSA_CONTACT">
+                                    <input type="text" class="text form-control" value="{$customer->email}" name="DNMODULKASSA_CONTACT">
                                 </div>
                             </div>
                         </div>

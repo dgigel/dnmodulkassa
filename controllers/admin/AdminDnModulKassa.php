@@ -30,19 +30,22 @@ class AdminDnModulKassaController extends ModuleAdminController
                 $entry->id_order = $order->id;
                 $entry->doc_id = $doc['id'];
                 $entry->doc_type = $doc['docType'];
-                $entry->payment_type = $doc['moneyPositions']['paymentType'];
+                $entry->payment_type = $doc['moneyPositions'][0]['paymentType'];
                 $entry->print_receipt = (int)$doc['printReceipt'];
                 $entry->contact = $doc['email'];
                 $entry->checkout_datetime = $doc['checkoutDateTime'];
                 $entry->status = 'ADDED';
 
-                if($sendDoc = DnModulKassaHandler::sendDoc($doc)) {
-                    # обрабатываем ответ от сервера
-                    # $entry->save();
+                $sendDoc = DnModulKassaHandler::sendDoc($doc);
+                if ($sendDoc && $sendDoc['status']) {
+                    $entry->status = $sendDoc['status'];
+                    $entry->save();
+
                     die(Tools::jsonEncode(array(
                         'success' => true,
                         'entry' => $entry,
-                        'doc' => $doc
+                        'doc' => $doc,
+                        'sendDoc' => $sendDoc
                     )));
                 } else {
                     die(Tools::jsonEncode(array(
