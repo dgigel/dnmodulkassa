@@ -36,12 +36,8 @@ class DnModulKassaResponseModuleFrontController extends ModuleFrontController
             die('<h1>404 Not Found</h1>');
         }
 
-        $status = DnModulKassaHandler::getDocStatus($doc_id);
-
-        if ($status['data'] && $status['data']['status']) {
-            $entry->status = $status['data']['status'];
-            $entry->save();
-        }
+        $entry->status = 'COMPLETED';
+        $entry->save();
 
         header('Content-Type: application/json');
         die(Tools::jsonEncode(array()));
