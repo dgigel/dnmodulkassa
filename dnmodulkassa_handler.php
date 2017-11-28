@@ -140,8 +140,9 @@ class DnModulKassaHandler
         $vatTag = Configuration::get('DNMODULKASSA_VAT_TAG');
         $inventPositions = array();
         foreach ($products as $product) {
+            $product_name = Product::getProductName((int)$product['id_product']);
             $inventPositions[] = static::createInventPosition(
-                (strlen(trim($product['product_reference'])) > 0 ? $product['product_reference'] : $product['product_name']),
+                (strlen(trim($product['product_reference'])) > 0 ? $product_name . ' ' . $product['product_reference'] : $product_name),
                 $product['unit_price_tax_incl'],
                 $product['product_quantity'],
                 $vatTag);
