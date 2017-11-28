@@ -32,7 +32,7 @@ class DnModulKassa extends Module
     {
         $this->name = 'dnmodulkassa';
         $this->tab = 'billing_invoicing';
-        $this->version = '0.1';
+        $this->version = '0.1.3';
         $this->author = 'Daniel.Gigel.ru';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.1.12');
