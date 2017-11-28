@@ -44,9 +44,7 @@ class DnModulKassaResponseModuleFrontController extends ModuleFrontController
         }
 
         header('Content-Type: application/json');
-        die(Tools::jsonEncode(array(
-            'success' => true
-        )));
+        die(Tools::jsonEncode(array()));
     }
 
     protected function disableColumns()
