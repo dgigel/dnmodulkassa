@@ -105,12 +105,14 @@ class DnModulKassa extends Module
 
         $order = new Order((int)$params['id_order']);
         $customer = new Customer($order->id_customer);
+        $address = new Address((int)$order->id_address_delivery);
         $entries = DnModulKassaEntry::getEntriesByOrderId($params['id_order']);
 
         $this->smarty->assign(array(
             'module_settings_link' => $this->context->link->getAdminLink('AdminModules') . '&configure=' . $this->name . '&module_name=' . $this->name . '&tab_module=' . $this->tab,
             'configured' => $configured,
             'customer' => $customer,
+            'address' => $address,
             'entries' => $entries
         ));
         return $this->display(__FILE__, 'displayAdminOrder.tpl');
