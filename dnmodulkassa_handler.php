@@ -149,21 +149,11 @@ class DnModulKassaHandler
         }
 
         if ($order->total_discounts > 0) {
-            if ($inventPositions[0]['quantity'] > 1) {
-                $inventPositions[0]['quantity'] -= 1;
-                array_unshift($inventPositions, static::createInventPosition(
-                    $inventPositions[0]['name'],
-                    $inventPositions[0]['price'],
-                    1,
-                    $vatTag
-                ));
-            }
-
             $discount_percent = $order->total_discounts / $order->total_products;
             $total_discounts = 0;
             foreach ($inventPositions as &$position) {
-                $position['discSum'] = floatval(number_format($position['price'] * $discount_percent, 2, '.', ''));
-                $total_discounts += $position['discSum'] * $position['quantity'];
+                $position['discSum'] = floatval(number_format($position['price'] * $position['quantity'] * $discount_percent, 2, '.', ''));
+                $total_discounts += $position['discSum'];
             }
 
             if ($order->total_discounts != $total_discounts) {
