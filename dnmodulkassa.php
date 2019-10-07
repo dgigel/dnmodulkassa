@@ -221,7 +221,7 @@ class DnModulKassa extends Module
 
         $output .= '
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" /> Настройки авторизации:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
@@ -287,7 +287,7 @@ class DnModulKassa extends Module
 
         $output .= '
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" /> Настройки модуля:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
