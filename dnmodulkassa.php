@@ -50,39 +50,66 @@ class DnModulKassa extends Module
         $this->conf = Configuration::getMultiple(array_keys($this->conf_default));
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     * @author Maksim T. <zapalm@yandex.com>
+     */
     public function install()
     {
-        foreach ($this->conf_default as $c => $v) {
-            if ($c == 'DNMODULKASSA_SECRET')
-                $v = Tools::passwdGen(32, 'RANDOM');
-            Configuration::updateValue($c, $v);
+        if (!parent::install()) {
+            return false;
         }
 
         $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry` (
-			`id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-			`id_order` INT UNSIGNED NOT NULL,
-			`doc_id` VARCHAR(250) NOT NULL,
+            `id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `id_order` INT UNSIGNED NOT NULL,
+            `doc_id` VARCHAR(250) NOT NULL,
             `doc_type` ENUM("SALE", "RETURN") NOT NULL,
-			`payment_type` ENUM("CARD", "CASH") NOT NULL,
-			`print_receipt` TINYINT(1) UNSIGNED NOT NULL,
-			`contact` VARCHAR(250) NOT NULL,
-			`checkout_datetime` VARCHAR(100) NOT NULL,
-			`status` VARCHAR(100) NOT NULL,
-			`date_add` DATETIME NOT NULL,
-	        `date_upd` DATETIME NOT NULL
-			) ENGINE=' . _MYSQL_ENGINE_;
+            `payment_type` ENUM("CARD", "CASH") NOT NULL,
+            `print_receipt` TINYINT(1) UNSIGNED NOT NULL,
+            `contact` VARCHAR(250) NOT NULL,
+            `checkout_datetime` VARCHAR(100) NOT NULL,
+            `status` VARCHAR(100) NOT NULL,
+            `date_add` DATETIME NOT NULL,
+            `date_upd` DATETIME NOT NULL
+            ) ENGINE=' . _MYSQL_ENGINE_
+        ;
 
-        if (!Db::getInstance()->execute($sql))
+        if (!Db::getInstance()->execute($sql)) {
             return false;
+        }
 
-        if (!parent::install())
+        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1)) {
             return false;
+        }
 
-        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1))
+        if (!$this->registerHook('displayAdminOrder')) {
             return false;
+        }
 
-        return $this->registerHook('displayAdminOrder')
-            && $this->registerHook('BackOfficeHeader');
+        if (!$this->registerHook('BackOfficeHeader')) {
+            return false;
+        }
+
+        foreach ($this->conf_default as $c => $v) {
+            if ($c == 'DNMODULKASSA_SECRET') {
+                $v = Tools::passwdGen(32, 'RANDOM');
+            }
+
+            Configuration::updateValue($c, $v);
+        }
+
+        (new \zapalm\prestashopHelpers\components\qualityService\QualityService($this, false))
+            ->setTicketData(array(
+                'new' => $this->name . '-' . $this->version,
+                'h'   => \zapalm\prestashopHelpers\helpers\UrlHelper::getShopDomain(),
+            ))
+            ->registerModule(true)
+        ;
+
+        return true;
     }
 
     public function uninstall()
