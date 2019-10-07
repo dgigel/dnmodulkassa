@@ -1,0 +1,31 @@
+{
+  "name": "dnmodulkassa",
+  "type": "prestashop-module",
+  "homepage": "https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html",
+  "authors": [
+    {
+      "name": "Daniel Gigel",
+      "email": "daniel@gigel.ru"
+    },
+    {
+      "name": "Maksim T.",
+      "email": "zapalm@yandex.com"
+    }
+  ],
+  "require": {
+    "php": ">=5.5",
+    "zapalm/prestashopHelpers": "dev-master"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/zapalm/prestashopHelpers"
+    }
+  ],
+  "autoload": {
+    "classmap": ["classes/"]
+  },
+  "config": {
+    "preferred-install": "dist"
+  }
+}

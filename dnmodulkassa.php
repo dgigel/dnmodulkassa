@@ -10,8 +10,11 @@
 if (!defined('_PS_VERSION_'))
     exit;
 
-@require_once _PS_MODULE_DIR_ . 'dnmodulkassa/dnmodulkassa_handler.php';
-include_once _PS_MODULE_DIR_ . 'dnmodulkassa/classes/DnModulKassaEntry.php';
+$vendorAutoloader = _PS_MODULE_DIR_ . 'dnmodulkassa/vendor/autoload.php';
+if (false === file_exists($vendorAutoloader)) {
+    $vendorAutoloader = _PS_ROOT_DIR_ . '/vendor/autoload.php';
+}
+require_once $vendorAutoloader;
 
 class DnModulKassa extends Module
 {
@@ -32,10 +35,10 @@ class DnModulKassa extends Module
     {
         $this->name = 'dnmodulkassa';
         $this->tab = 'billing_invoicing';
-        $this->version = '0.1.3';
-        $this->author = 'Daniel.Gigel.ru';
+        $this->version = '0.2.0';
+        $this->author = 'Daniel Gigel';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.1.12');
+        $this->ps_versions_compliancy = array('min' => '1.6');
         $this->secure_key = Tools::encrypt($this->name);
         $this->bootstrap = true;
 
@@ -47,39 +50,66 @@ class DnModulKassa extends Module
         $this->conf = Configuration::getMultiple(array_keys($this->conf_default));
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     * @author Maksim T. <zapalm@yandex.com>
+     */
     public function install()
     {
-        foreach ($this->conf_default as $c => $v) {
-            if ($c == 'DNMODULKASSA_SECRET')
-                $v = Tools::passwdGen(32, 'RANDOM');
-            Configuration::updateValue($c, $v);
+        if (!parent::install()) {
+            return false;
         }
 
         $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry` (
-			`id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-			`id_order` INT UNSIGNED NOT NULL,
-			`doc_id` VARCHAR(250) NOT NULL,
+            `id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `id_order` INT UNSIGNED NOT NULL,
+            `doc_id` VARCHAR(250) NOT NULL,
             `doc_type` ENUM("SALE", "RETURN") NOT NULL,
-			`payment_type` ENUM("CARD", "CASH") NOT NULL,
-			`print_receipt` TINYINT(1) UNSIGNED NOT NULL,
-			`contact` VARCHAR(250) NOT NULL,
-			`checkout_datetime` VARCHAR(100) NOT NULL,
-			`status` VARCHAR(100) NOT NULL,
-			`date_add` DATETIME NOT NULL,
-	        `date_upd` DATETIME NOT NULL
-			) ENGINE=' . _MYSQL_ENGINE_;
+            `payment_type` ENUM("CARD", "CASH") NOT NULL,
+            `print_receipt` TINYINT(1) UNSIGNED NOT NULL,
+            `contact` VARCHAR(250) NOT NULL,
+            `checkout_datetime` VARCHAR(100) NOT NULL,
+            `status` VARCHAR(100) NOT NULL,
+            `date_add` DATETIME NOT NULL,
+            `date_upd` DATETIME NOT NULL
+            ) ENGINE=' . _MYSQL_ENGINE_
+        ;
 
-        if (!Db::getInstance()->execute($sql))
+        if (!Db::getInstance()->execute($sql)) {
             return false;
+        }
 
-        if (!parent::install())
+        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1)) {
             return false;
+        }
 
-        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1))
+        if (!$this->registerHook('displayAdminOrder')) {
             return false;
+        }
 
-        return $this->registerHook('displayAdminOrder')
-            && $this->registerHook('BackOfficeHeader');
+        if (!$this->registerHook('BackOfficeHeader')) {
+            return false;
+        }
+
+        foreach ($this->conf_default as $c => $v) {
+            if ($c == 'DNMODULKASSA_SECRET') {
+                $v = Tools::passwdGen(32, 'RANDOM');
+            }
+
+            Configuration::updateValue($c, $v);
+        }
+
+        (new \zapalm\prestashopHelpers\components\qualityService\QualityService($this, false))
+            ->setTicketData(array(
+                'new' => $this->name . '-' . $this->version,
+                'h'   => \zapalm\prestashopHelpers\helpers\UrlHelper::getShopDomain(),
+            ))
+            ->registerModule(true)
+        ;
+
+        return true;
     }
 
     public function uninstall()
@@ -130,16 +160,7 @@ class DnModulKassa extends Module
 
     public function getContent()
     {
-        $output = '
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="panel dnmodulkassa-header">
-                        <img class="dnmodulkassa-logo" src="' . $this->_path . 'logo.png">
-                        <h1>' . $this->displayName . ' <sup>v' . $this->version . '</sup></h1>
-                    </div>
-                </div>
-            </div>
-        ';
+        $output = '';
 
         if (Tools::isSubmit('settings_submit_save')) {
             $test_mode = (int)Tools::getValue('DNMODULKASSA_TEST_MODE');
@@ -183,7 +204,7 @@ class DnModulKassa extends Module
             $test_mode = Configuration::get('DNMODULKASSA_TEST_MODE');
 
             if ($retailpoint_id != '' && $login != '' && $password != '') {
-                $association_responce = DnModulKassaHandler::createAssociation($retailpoint_id, $login, $password);
+                $association_responce = DnModulKassaClient::createAssociation($retailpoint_id, $login, $password);
                 if ($association_responce['success']) {
                     $output .= '<div class="alert alert-success">Успешная инициализация интернет-магазина с розничной точкой.</div>';
                 } else {
@@ -195,12 +216,12 @@ class DnModulKassa extends Module
         }
 
         if (Tools::isSubmit('association_submit_delete')) {
-            DnModulKassaHandler::removeCurrentAssociation();
+            DnModulKassaClient::removeCurrentAssociation();
         }
 
         $output .= '
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" /> Настройки авторизации:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
@@ -237,10 +258,10 @@ class DnModulKassa extends Module
             $apassword = Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD');
             $apoint_info = Configuration::get('DNMODULKASSA_RETAIL_POINT_INFO');
             if ($apassword != '' && $auser != '' && $apoint_info != '') {
-                $astatus = DnModulKassaHandler::getStatus($auser, $apassword);
+                $astatus = DnModulKassaClient::getStatus($auser, $apassword);
             }
             $output .= '
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
@@ -266,7 +287,7 @@ class DnModulKassa extends Module
 
         $output .= '
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" /> Настройки модуля:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
@@ -306,10 +327,10 @@ class DnModulKassa extends Module
                                     <select class="form-control" name="DNMODULKASSA_VAT_TAG" id="DNMODULKASSA_VAT_TAG">
                                         <option value="1104" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1104' ? 'selected="selected"' : '') . '>НДС 0%</option>
                                         <option value="1103" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1103' ? 'selected="selected"' : '') . '>НДС 10%</option>
-                                        <option value="1102" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1102' ? 'selected="selected"' : '') . '>НДС 18%</option>
+                                        <option value="1102" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1102' ? 'selected="selected"' : '') . '>НДС 20%</option>
                                         <option value="1105" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1105' ? 'selected="selected"' : '') . '>НДС не облагается</option>
-                                        <option value="1107" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1107' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 10/110</option>
-                                        <option value="1106" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1106' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 18/118</option>
+                                        <option value="1107" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1107' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 10%</option>
+                                        <option value="1106" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1106' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 20%</option>
                                     </select>
                                 </div>
                             </div>
@@ -319,6 +340,13 @@ class DnModulKassa extends Module
                 </div>
             </div>
 		';
+
+        $output .= (new \zapalm\prestashopHelpers\widgets\AboutModuleWidget($this))
+            ->setModuleUri('55-prestashop-and-modulkassa-integration.html')
+            ->setLicenseTitle($this->l('MIT'))
+            ->setLicenseUrl('https://ru.bmstu.wiki/MIT_License')
+            ->setAuthorIconUri(null)
+        ;
 
         return $output;
     }

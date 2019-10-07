@@ -7,7 +7,7 @@
 if (!defined('_PS_VERSION_'))
     exit;
 
-class DnModulKassaHandler
+class DnModulKassaClient
 {
     public static function log($log_entry, $log_file = null)
     {
