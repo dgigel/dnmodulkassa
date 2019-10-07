@@ -186,7 +186,7 @@ class DnModulKassa extends Module
             $test_mode = Configuration::get('DNMODULKASSA_TEST_MODE');
 
             if ($retailpoint_id != '' && $login != '' && $password != '') {
-                $association_responce = DnModulKassaHandler::createAssociation($retailpoint_id, $login, $password);
+                $association_responce = DnModulKassaClient::createAssociation($retailpoint_id, $login, $password);
                 if ($association_responce['success']) {
                     $output .= '<div class="alert alert-success">Успешная инициализация интернет-магазина с розничной точкой.</div>';
                 } else {
@@ -198,7 +198,7 @@ class DnModulKassa extends Module
         }
 
         if (Tools::isSubmit('association_submit_delete')) {
-            DnModulKassaHandler::removeCurrentAssociation();
+            DnModulKassaClient::removeCurrentAssociation();
         }
 
         $output .= '
@@ -240,7 +240,7 @@ class DnModulKassa extends Module
             $apassword = Configuration::get('DNMODULKASSA_ASSOCIATE_PASSWORD');
             $apoint_info = Configuration::get('DNMODULKASSA_RETAIL_POINT_INFO');
             if ($apassword != '' && $auser != '' && $apoint_info != '') {
-                $astatus = DnModulKassaHandler::getStatus($auser, $apassword);
+                $astatus = DnModulKassaClient::getStatus($auser, $apassword);
             }
             $output .= '
                 <div class="col-md-6">

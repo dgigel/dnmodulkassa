@@ -23,7 +23,7 @@ class DnModulKassaResponseModuleFrontController extends ModuleFrontController
         $token = trim($token);
         $doc_id = trim($doc_id);
 
-        $validate = DnModulKassaHandler::validateToken($token, $doc_id);
+        $validate = DnModulKassaClient::validateToken($token, $doc_id);
 
         if (!$validate) {
             header('HTTP/1.0 403 Forbidden');

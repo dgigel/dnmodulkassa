@@ -25,7 +25,7 @@ class AdminDnModulKassaController extends ModuleAdminController
         } else {
             $order = new Order((int)$form_data['id_order']);
 
-            if ($doc = DnModulKassaHandler::createDoc($order, $form_data['doc_type'], $form_data['payment_type'], (int)$form_data['print_receipt'], $form_data['contact'])) {
+            if ($doc = DnModulKassaClient::createDoc($order, $form_data['doc_type'], $form_data['payment_type'], (int)$form_data['print_receipt'], $form_data['contact'])) {
                 $entry = new DnModulKassaEntry();
                 $entry->id_order = $order->id;
                 $entry->doc_id = $doc['id'];
@@ -36,7 +36,7 @@ class AdminDnModulKassaController extends ModuleAdminController
                 $entry->checkout_datetime = $doc['checkoutDateTime'];
                 $entry->status = 'ADDED';
 
-                $sendDoc = DnModulKassaHandler::sendDoc($doc);
+                $sendDoc = DnModulKassaClient::sendDoc($doc);
                 if ($sendDoc && $sendDoc['status']) {
                     $entry->status = $sendDoc['status'];
                     $entry->save();
