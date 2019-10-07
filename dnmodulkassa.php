@@ -261,7 +261,7 @@ class DnModulKassa extends Module
                 $astatus = DnModulKassaClient::getStatus($auser, $apassword);
             }
             $output .= '
-                <div class="col-md-6">
+                <div class="col-md-12">
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
