@@ -10,8 +10,11 @@
 if (!defined('_PS_VERSION_'))
     exit;
 
-@require_once _PS_MODULE_DIR_ . 'dnmodulkassa/dnmodulkassa_handler.php';
-include_once _PS_MODULE_DIR_ . 'dnmodulkassa/classes/DnModulKassaEntry.php';
+$vendorAutoloader = _PS_MODULE_DIR_ . 'dnmodulkassa/vendor/autoload.php';
+if (false === file_exists($vendorAutoloader)) {
+    $vendorAutoloader = _PS_ROOT_DIR_ . '/vendor/autoload.php';
+}
+require_once $vendorAutoloader;
 
 class DnModulKassa extends Module
 {
