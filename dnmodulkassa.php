@@ -327,10 +327,10 @@ class DnModulKassa extends Module
                                     <select class="form-control" name="DNMODULKASSA_VAT_TAG" id="DNMODULKASSA_VAT_TAG">
                                         <option value="1104" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1104' ? 'selected="selected"' : '') . '>НДС 0%</option>
                                         <option value="1103" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1103' ? 'selected="selected"' : '') . '>НДС 10%</option>
-                                        <option value="1102" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1102' ? 'selected="selected"' : '') . '>НДС 18%</option>
+                                        <option value="1102" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1102' ? 'selected="selected"' : '') . '>НДС 20%</option>
                                         <option value="1105" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1105' ? 'selected="selected"' : '') . '>НДС не облагается</option>
-                                        <option value="1107" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1107' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 10/110</option>
-                                        <option value="1106" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1106' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 18/118</option>
+                                        <option value="1107" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1107' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 10%</option>
+                                        <option value="1106" ' . (Configuration::get('DNMODULKASSA_VAT_TAG') == '1106' ? 'selected="selected"' : '') . '>НДС с рассч. ставкой 20%</option>
                                     </select>
                                 </div>
                             </div>
