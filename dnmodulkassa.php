@@ -36,7 +36,7 @@ class DnModulKassa extends Module
         $this->name = 'dnmodulkassa';
         $this->tab = 'billing_invoicing';
         $this->version = '0.1.3';
-        $this->author = 'Daniel.Gigel.ru';
+        $this->author = 'Daniel Gigel';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6', 'max' => '1.6.1.12');
         $this->secure_key = Tools::encrypt($this->name);
@@ -160,16 +160,7 @@ class DnModulKassa extends Module
 
     public function getContent()
     {
-        $output = '
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="panel dnmodulkassa-header">
-                        <img class="dnmodulkassa-logo" src="' . $this->_path . 'logo.png">
-                        <h1>' . $this->displayName . ' <sup>v' . $this->version . '</sup></h1>
-                    </div>
-                </div>
-            </div>
-        ';
+        $output = '';
 
         if (Tools::isSubmit('settings_submit_save')) {
             $test_mode = (int)Tools::getValue('DNMODULKASSA_TEST_MODE');
@@ -349,6 +340,13 @@ class DnModulKassa extends Module
                 </div>
             </div>
 		';
+
+        $output .= (new \zapalm\prestashopHelpers\widgets\AboutModuleWidget($this))
+            ->setModuleUri('55-prestashop-and-modulkassa-integration.html')
+            ->setLicenseTitle($this->l('MIT'))
+            ->setLicenseUrl('https://ru.bmstu.wiki/MIT_License')
+            ->setAuthorIconUri(null)
+        ;
 
         return $output;
     }
