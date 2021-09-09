@@ -261,7 +261,18 @@ class DnModulKassa extends Module
                     <div class="panel">
                         <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" alt="" /> Настройки авторизации</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
-                            <p>Учетные данные <a target="_blank" href="https://service.modulpos.ru/">МодульКассы</a></p>
+                            <div class="alert alert-info">
+                                Войдите в 
+                                <a target="_blank" rel="nofollow noopener" href="https://modulkassa.pro/?utm_source=pap&a_aid=0C7FBBDE-E228-4AAE-8B04-67E634BCB03D">
+                                    личный кабинет МодульКассы
+                                </a>
+                                для получения учётных данных.
+                                <br>
+                                В настройках модуля нужно ввести логин, пароль и ID точки продаж.<br>
+                                ID точки продаж - это GUID-идентификатор, который выглядит примерно так: <u>1q2w3e4r-1q2w-1q2w-1q2w3e4r1q2w</u>.<br>
+                                Еще нужно ввести токен - это любое кодовое слово, которое придумываете вы сами, например: <u>1q2W3e4R1Q</u>.<br>
+                                Остальные настройки модуля установите по вашей необходимости.
+                            </div>
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Логин: </label>
                                 <div class="col-lg-9">
