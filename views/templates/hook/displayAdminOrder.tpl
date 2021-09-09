@@ -1,3 +1,13 @@
+{**
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
+ *}
+
 <div class="col-md-6" id="dnmodulkassa_col">
     <div class="panel">
         <div class="panel-heading">

@@ -1,12 +1,22 @@
 <?php
 /**
- * This file is part of DnModulKassa module for PrestaShop.
- * @author Daniel Gigel <daniel@gigel.ru>
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
  */
 
 if (!defined('_PS_VERSION_'))
     exit;
 
+/**
+ * Клиент по работе с API-сервисом МодульКассы.
+ *
+ * @author Daniel Gigel <daniel@gigel.ru>
+ */
 class DnModulKassaClient
 {
     public static function log($log_entry, $log_file = null)

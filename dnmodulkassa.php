@@ -1,10 +1,12 @@
 <?php
 /**
- * DnModulKassa PrestaShop module main file.
- * @author Daniel Gigel <daniel@gigel.ru>
- * @link http://Daniel.Gigel.ru/
- * Date: 23.11.2017
- * Time: 12:19
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
  */
 
 if (!defined('_PS_VERSION_'))
@@ -12,6 +14,12 @@ if (!defined('_PS_VERSION_'))
 
 require_once _PS_MODULE_DIR_ . 'dnmodulkassa/autoload.inc.php';
 
+/**
+ * Модуль интеграции с сервисом МодульКасса.
+ *
+ * @author Daniel Gigel <daniel@gigel.ru>
+ * @author Maksim T. <zapalm@yandex.com>
+ */
 class DnModulKassa extends Module
 {
     /** Идентификатор модуля (продукта) на домашней странице. */
@@ -140,7 +148,12 @@ class DnModulKassa extends Module
         return $result;
     }
 
-    public function hookdisplayAdminOrder($params)
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
+    public function hookDisplayAdminOrder($params)
     {
         $configured = (Configuration::get('DNMODULKASSA_SECRET') &&
             Configuration::get('DNMODULKASSA_ASSOCIATE_USER') &&
@@ -161,6 +174,11 @@ class DnModulKassa extends Module
         return $this->display(__FILE__, 'displayAdminOrder.tpl');
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
     public function hookDisplayBackOfficeHeader($params)
     {
         $this->context->controller->addCSS(($this->_path) . 'views/css/dnmodulkassa.css');
@@ -171,6 +189,11 @@ class DnModulKassa extends Module
 			<script type="text/javascript" src="' . ($this->_path) . 'views/js/dnmodulkassa.js"></script>';
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
     public function getContent()
     {
         $output = '';
