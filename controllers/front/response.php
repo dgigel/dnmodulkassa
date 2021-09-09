@@ -1,13 +1,26 @@
 <?php
+/**
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
+ */
 
 /**
+ * Контроллер для обработки коллбэк-запросов от API сервиса МодульКассы.
+ *
  * @author Daniel Gigel <daniel@gigel.ru>
- * @link http://Daniel.Gigel.ru/
- * Date: 24.11.2017
- * Time: 19:02
  */
 class DnModulKassaResponseModuleFrontController extends ModuleFrontController
 {
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
     public function initContent()
     {
         $this->disableColumns();

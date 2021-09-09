@@ -1,7 +1,17 @@
-<div class="col-md-6" id="dnmodulkassa_col">
+{**
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
+ *}
+
+<div class="col-lg-12" id="dnmodulkassa_col">
     <div class="panel">
         <div class="panel-heading">
-            <img src="../modules/dnmodulkassa/logo.gif"> <b>Модуль</b>Касса
+            <img src="../modules/dnmodulkassa/logo.gif" alt=""> <b>Модуль</b>Касса
             <span class="panel-heading-action">
                 <a class="list-toolbar-btn" href="{$module_settings_link}" title="Настроить">
                     <i class="process-icon-configure"></i>
@@ -56,7 +66,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Оправить документ в <img src="../modules/dnmodulkassa/logo.gif"> <b>Модуль</b>Кассу</h4>
+                <h4 class="modal-title">Оправить документ в <img src="../modules/dnmodulkassa/logo.gif" alt=""> <b>Модуль</b>Кассу</h4>
             </div>
             <div class="modal-body">
                 <div class="row">

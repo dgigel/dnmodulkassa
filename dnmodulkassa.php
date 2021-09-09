@@ -1,23 +1,30 @@
 <?php
 /**
- * DnModulKassa PrestaShop module main file.
- * @author Daniel Gigel <daniel@gigel.ru>
- * @link http://Daniel.Gigel.ru/
- * Date: 23.11.2017
- * Time: 12:19
+ * МодульКасса: модуль для PrestaShop.
+ *
+ * @author    Daniel Gigel <daniel@gigel.ru>
+ * @author    Maksim T. <zapalm@yandex.com>
+ * @copyright 2017 Daniel Gigel
+ * @link      https://prestashop.modulez.ru/ru/third-party-data-integration/55-prestashop-and-modulkassa-integration.html Домашняя страница модуля
+ * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
  */
 
 if (!defined('_PS_VERSION_'))
     exit;
 
-$vendorAutoloader = _PS_MODULE_DIR_ . 'dnmodulkassa/vendor/autoload.php';
-if (false === file_exists($vendorAutoloader)) {
-    $vendorAutoloader = _PS_ROOT_DIR_ . '/vendor/autoload.php';
-}
-require_once $vendorAutoloader;
+require_once _PS_MODULE_DIR_ . 'dnmodulkassa/autoload.inc.php';
 
+/**
+ * Модуль интеграции с сервисом МодульКасса.
+ *
+ * @author Daniel Gigel <daniel@gigel.ru>
+ * @author Maksim T. <zapalm@yandex.com>
+ */
 class DnModulKassa extends Module
 {
+    /** Идентификатор модуля (продукта) на домашней странице. */
+    const HOMEPAGE_PRODUCT_ID = 55;
+
     private $conf_default = array(
         'DNMODULKASSA_LOGIN' => '',
         'DNMODULKASSA_PASSWORD' => '',
@@ -31,23 +38,25 @@ class DnModulKassa extends Module
         'DNMODULKASSA_VAT_TAG' => '1105'
     );
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     * @author Maksim T. <zapalm@yandex.com>
+     */
     public function __construct()
     {
-        $this->name = 'dnmodulkassa';
-        $this->tab = 'billing_invoicing';
-        $this->version = '0.2.0';
-        $this->author = 'Daniel Gigel';
-        $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6');
-        $this->secure_key = Tools::encrypt($this->name);
-        $this->bootstrap = true;
+        $this->name          = 'dnmodulkassa';
+        $this->tab           = 'billing_invoicing';
+        $this->version       = '0.5.0';
+        $this->author        = 'Daniel Gigel';
+        $this->need_instance = false;
+        $this->bootstrap     = true;
 
         parent::__construct();
 
         $this->displayName = 'МодульКасса';
         $this->description = 'PrestaShop <=> МодульКасса';
-
-        $this->conf = Configuration::getMultiple(array_keys($this->conf_default));
     }
 
     /**
@@ -58,76 +67,93 @@ class DnModulKassa extends Module
      */
     public function install()
     {
-        if (!parent::install()) {
-            return false;
+        $result = parent::install();
+
+        if ($result) {
+            $result = Db::getInstance()->execute('
+                CREATE TABLE IF NOT EXISTS ' . _DB_PREFIX_ . 'dnmodulkassa_entry (
+                    id_entry          INT UNSIGNED            NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                    id_order          INT UNSIGNED            NOT NULL,
+                    doc_id            VARCHAR(250)            NOT NULL,
+                    doc_type          ENUM("SALE", "RETURN")  NOT NULL,
+                    payment_type      ENUM("CARD", "CASH")    NOT NULL,
+                    print_receipt     TINYINT(1) UNSIGNED     NOT NULL,
+                    contact           VARCHAR(250)            NOT NULL,
+                    checkout_datetime VARCHAR(100)            NOT NULL,
+                    status            VARCHAR(100)            NOT NULL,
+                    date_add          DATETIME                NOT NULL,
+                    date_upd          DATETIME                NOT NULL
+                ) ENGINE = ' . _MYSQL_ENGINE_
+            );
         }
 
-        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry` (
-            `id_entry` INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-            `id_order` INT UNSIGNED NOT NULL,
-            `doc_id` VARCHAR(250) NOT NULL,
-            `doc_type` ENUM("SALE", "RETURN") NOT NULL,
-            `payment_type` ENUM("CARD", "CASH") NOT NULL,
-            `print_receipt` TINYINT(1) UNSIGNED NOT NULL,
-            `contact` VARCHAR(250) NOT NULL,
-            `checkout_datetime` VARCHAR(100) NOT NULL,
-            `status` VARCHAR(100) NOT NULL,
-            `date_add` DATETIME NOT NULL,
-            `date_upd` DATETIME NOT NULL
-            ) ENGINE=' . _MYSQL_ENGINE_
-        ;
+        if ($result) {
+            foreach ($this->conf_default as $confName => $confValue) {
+                if ($confName === 'DNMODULKASSA_SECRET') {
+                    $confValue = Tools::passwdGen(32, 'RANDOM');
+                }
 
-        if (!Db::getInstance()->execute($sql)) {
-            return false;
-        }
-
-        if (!$this->installModuleTab('AdminDnModulKassa', 'МодульКасса', -1)) {
-            return false;
-        }
-
-        if (!$this->registerHook('displayAdminOrder')) {
-            return false;
-        }
-
-        if (!$this->registerHook('BackOfficeHeader')) {
-            return false;
-        }
-
-        foreach ($this->conf_default as $c => $v) {
-            if ($c == 'DNMODULKASSA_SECRET') {
-                $v = Tools::passwdGen(32, 'RANDOM');
+                Configuration::updateValue($confName, $confValue);
             }
 
-            Configuration::updateValue($c, $v);
+            $result &= $this->registerHook('displayAdminOrder');
+            $result &= $this->registerHook('displayBackOfficeHeader');
+
+            $result = (bool)$result;
         }
 
-        (new \zapalm\prestashopHelpers\components\qualityService\QualityService($this, false))
-            ->setTicketData(array(
-                'new' => $this->name . '-' . $this->version,
-                'h'   => \zapalm\prestashopHelpers\helpers\UrlHelper::getShopDomain(),
-            ))
-            ->registerModule(true)
+        if ($result) {
+            $tab = \zapalm\prestashopHelpers\helpers\BackendHelper::installTab(
+                $this->name,
+                'AdminDnModulKassa',
+                \zapalm\prestashopHelpers\helpers\BackendHelper::TAB_PARENT_ID_UNLINKED
+            );
+
+            $result = \zapalm\prestashopHelpers\helpers\ValidateHelper::isLoadedObject($tab);
+        }
+
+        (new \zapalm\prestashopHelpers\components\qualityService\QualityServiceClient(self::HOMEPAGE_PRODUCT_ID))
+            ->installModule($this)
         ;
 
-        return true;
+        return $result;
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     * @author Maksim T. <zapalm@yandex.com>
+     */
     public function uninstall()
     {
-        foreach ($this->conf_default as $c => $v)
-            Configuration::deleteByName($c);
+        $result = (bool)parent::uninstall();
 
-        $sql = 'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'dnmodulkassa_entry`';
-        if (!Db::getInstance()->execute($sql))
-            return false;
+        if ($result) {
+            foreach (array_keys($this->conf_default) as $confName) {
+                Configuration::deleteByName($confName);
+            }
 
-        if (!$this->uninstallModuleTab('AdminDnModulKassa'))
-            return false;
+            $result = Db::getInstance()->execute('DROP TABLE IF EXISTS ' . _DB_PREFIX_ . 'dnmodulkassa_entry');
+        }
 
-        return parent::uninstall();
+        if ($result) {
+            $result = \zapalm\prestashopHelpers\helpers\ModuleHelper::uninstallTabs($this->name);
+        }
+
+        (new \zapalm\prestashopHelpers\components\qualityService\QualityServiceClient(self::HOMEPAGE_PRODUCT_ID))
+            ->uninstallModule($this)
+        ;
+
+        return $result;
     }
 
-    public function hookdisplayAdminOrder($params)
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
+    public function hookDisplayAdminOrder($params)
     {
         $configured = (Configuration::get('DNMODULKASSA_SECRET') &&
             Configuration::get('DNMODULKASSA_ASSOCIATE_USER') &&
@@ -148,6 +174,11 @@ class DnModulKassa extends Module
         return $this->display(__FILE__, 'displayAdminOrder.tpl');
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
     public function hookDisplayBackOfficeHeader($params)
     {
         $this->context->controller->addCSS(($this->_path) . 'views/css/dnmodulkassa.css');
@@ -158,6 +189,11 @@ class DnModulKassa extends Module
 			<script type="text/javascript" src="' . ($this->_path) . 'views/js/dnmodulkassa.js"></script>';
     }
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     */
     public function getContent()
     {
         $output = '';
@@ -223,9 +259,20 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" /> Настройки авторизации:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" alt="" /> Настройки авторизации</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
-                            <p>Учетные данные <a target="_blank" href="https://service.modulpos.ru/">МодульКассы</a></p>
+                            <div class="alert alert-info">
+                                Войдите в 
+                                <a target="_blank" rel="nofollow noopener" href="https://modulkassa.pro/?utm_source=pap&a_aid=0C7FBBDE-E228-4AAE-8B04-67E634BCB03D">
+                                    личный кабинет МодульКассы
+                                </a>
+                                для получения учётных данных.
+                                <br>
+                                В настройках модуля нужно ввести логин, пароль и ID точки продаж.<br>
+                                ID точки продаж - это GUID-идентификатор, который выглядит примерно так: <u>1q2w3e4r-1q2w-1q2w-1q2w3e4r1q2w</u>.<br>
+                                Еще нужно ввести токен - это любое кодовое слово, которое придумываете вы сами, например: <u>1q2W3e4R1Q</u>.<br>
+                                Остальные настройки модуля установите по вашей необходимости.
+                            </div>
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Логин: </label>
                                 <div class="col-lg-9">
@@ -263,7 +310,7 @@ class DnModulKassa extends Module
             $output .= '
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" alt="" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Логин & пароль: ' . (($auser != '' && $apassword != '') ? '<b class="text-success">получены</b>' : '<b class="text-danger">не получены</b>') . '</p>
                             <p><b>' . $apoint_info . '</b></p>
@@ -289,7 +336,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" /> Настройки модуля:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" alt="" /> Настройки модуля</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Тестовый режим: </label>
@@ -342,38 +389,11 @@ class DnModulKassa extends Module
 		';
 
         $output .= (new \zapalm\prestashopHelpers\widgets\AboutModuleWidget($this))
-            ->setModuleUri('55-prestashop-and-modulkassa-integration.html')
-            ->setLicenseTitle($this->l('MIT'))
+            ->setProductId(self::HOMEPAGE_PRODUCT_ID)
+            ->setLicenseTitle(\zapalm\prestashopHelpers\widgets\AboutModuleWidget::LICENSE_MIT)
             ->setLicenseUrl('https://ru.bmstu.wiki/MIT_License')
-            ->setAuthorIconUri(null)
         ;
 
         return $output;
     }
-
-    private function installModuleTab($tab_class, $tab_name, $id_tab_parent)
-    {
-        $tab = new Tab();
-        $tab->class_name = $tab_class;
-        $tab->module = $this->name;
-        $tab->id_parent = $id_tab_parent;
-
-        $languages = Language::getLanguages();
-        foreach ($languages as $lang)
-            $tab->name[$lang['id_lang']] = $this->l($tab_name);
-
-        return $tab->save();
-    }
-
-    private function uninstallModuleTab($tab_class)
-    {
-        $idTab = Tab::getIdFromClassName($tab_class);
-        if ($idTab != 0) {
-            $tab = new Tab($idTab);
-            $tab->delete();
-            return true;
-        }
-        return false;
-    }
-
 }
