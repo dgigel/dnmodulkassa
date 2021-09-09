@@ -48,7 +48,7 @@ class DnModulKassa extends Module
     {
         $this->name          = 'dnmodulkassa';
         $this->tab           = 'billing_invoicing';
-        $this->version       = '0.2.0';
+        $this->version       = '0.5.0';
         $this->author        = 'Daniel Gigel';
         $this->need_instance = false;
         $this->bootstrap     = true;
