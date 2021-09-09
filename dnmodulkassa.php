@@ -30,16 +30,20 @@ class DnModulKassa extends Module
         'DNMODULKASSA_VAT_TAG' => '1105'
     );
 
+    /**
+     * @inheritDoc
+     *
+     * @author Daniel Gigel <daniel@gigel.ru>
+     * @author Maksim T. <zapalm@yandex.com>
+     */
     public function __construct()
     {
-        $this->name = 'dnmodulkassa';
-        $this->tab = 'billing_invoicing';
-        $this->version = '0.2.0';
-        $this->author = 'Daniel Gigel';
-        $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6');
-        $this->secure_key = Tools::encrypt($this->name);
-        $this->bootstrap = true;
+        $this->name          = 'dnmodulkassa';
+        $this->tab           = 'billing_invoicing';
+        $this->version       = '0.2.0';
+        $this->author        = 'Daniel Gigel';
+        $this->need_instance = false;
+        $this->bootstrap     = true;
 
         parent::__construct();
 
