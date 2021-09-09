@@ -8,10 +8,10 @@
  * @license   https://ru.bmstu.wiki/MIT_License Лицензия MIT
  *}
 
-<div class="col-md-6" id="dnmodulkassa_col">
+<div class="col-lg-12" id="dnmodulkassa_col">
     <div class="panel">
         <div class="panel-heading">
-            <img src="../modules/dnmodulkassa/logo.gif"> <b>Модуль</b>Касса
+            <img src="../modules/dnmodulkassa/logo.gif" alt=""> <b>Модуль</b>Касса
             <span class="panel-heading-action">
                 <a class="list-toolbar-btn" href="{$module_settings_link}" title="Настроить">
                     <i class="process-icon-configure"></i>
@@ -66,7 +66,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title">Оправить документ в <img src="../modules/dnmodulkassa/logo.gif"> <b>Модуль</b>Кассу</h4>
+                <h4 class="modal-title">Оправить документ в <img src="../modules/dnmodulkassa/logo.gif" alt=""> <b>Модуль</b>Кассу</h4>
             </div>
             <div class="modal-body">
                 <div class="row">

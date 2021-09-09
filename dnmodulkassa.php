@@ -259,7 +259,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" /> Настройки авторизации:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/profile.png" alt="" /> Настройки авторизации</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Учетные данные <a target="_blank" href="https://service.modulpos.ru/">МодульКассы</a></p>
                             <div class="form-group">
@@ -299,7 +299,7 @@ class DnModulKassa extends Module
             $output .= '
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/sync.png" alt="" /> Инициализация (связка) интернет-магазина с розничной точкой:</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <p>Логин & пароль: ' . (($auser != '' && $apassword != '') ? '<b class="text-success">получены</b>' : '<b class="text-danger">не получены</b>') . '</p>
                             <p><b>' . $apoint_info . '</b></p>
@@ -325,7 +325,7 @@ class DnModulKassa extends Module
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel">
-                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" /> Настройки модуля:</div>
+                        <div class="panel-heading"><img src="' . $this->_path . 'views/img/settings.png" alt="" /> Настройки модуля</div>
                         <form action="' . $_SERVER['REQUEST_URI'] . '" method="post" class="form-horizontal">
                             <div class="form-group">
                                 <label class="control-label col-lg-3">Тестовый режим: </label>
